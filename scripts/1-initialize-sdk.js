@@ -7,13 +7,14 @@ dotenv.config()
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 const QUICKNODE_API_URL = process.env.QUICKNODE_API_URL
 const WALLET_ADDRESS = process.env.WALLET_ADDRESS
+const ALCHEMY_API_URL = process.env.ALCHEMY_API_URL
 
 // check if .env is working
 if (!PRIVATE_KEY || PRIVATE_KEY === "") {
     console.log("🛑 Private key not found.")
 }
 
-if (!QUICKNODE_API_URL || QUICKNODE_API_URL === "") {
+if (!ALCHEMY_API_URL || ALCHEMY_API_URL === "") {
     console.log("🛑 QuickNode API URL not found.")
 }
 
@@ -22,7 +23,7 @@ if (!WALLET_ADDRESS || WALLET_ADDRESS === "") {
 }
 
 // RPC url
-const provider = new ethers.providers.JsonRpcProvider(QUICKNODE_API_URL)
+const provider = new ethers.providers.JsonRpcProvider(ALCHEMY_API_URL)
 // wallet private keys
 const wallet = new ethers.Wallet(PRIVATE_KEY, provider)
 const sdk = new ThirdwebSDK(wallet);
