@@ -1,6 +1,6 @@
 import './App.css'
-import { useAddress, useMetamask, useEditionDrop } from '@thirdweb-dev/react';
-import { useState, useEffect } from "react";
+import { useAddress, useMetamask, useEditionDrop, useToken } from '@thirdweb-dev/react';
+import { useState, useEffect, useMemo } from "react";
 
 
 
@@ -13,11 +13,76 @@ function App() {
   // initialize editionDrop contract
   const editionDrop = useEditionDrop("0xcdC29385f3E39f9C6E3c752fD06bAaaceeAac611")
 
+  // initialize token contract
+  const token = useToken("0x04ECc2353EbAD9bdE351496E2B5B05811Ea6a9b5");
+
   // state variable to know if user has our NFT
   const [hasClaimedNFT, setHasClaimedNFT] = useState(false)
 
   // isClaiming lets us easily keep a loading state while NFT is minting
   const [isClaiming, setIsClaiming] = useState(false)
+
+  // holds the amount of token each member has in state
+  const [memberTokenAmounts, setMemberTokenAmounts] = useState([]);
+
+  // the array holding all of our member address
+  const [memberAddresses, setMemberAddresses] = useState([]);
+
+  // truncating the wallet address
+  const shortenAddress = (str) => {
+    return str.substring(0, 6) + "..." + str.substring(str.length - 4)
+  }
+
+  // this useEffect grabs all the addresses of our members holding our nft
+  useEffect(() => {
+    if (!hasClaimedNFT) {
+      return
+    }
+
+    const getAllAddresses = async () => {
+      try {
+        const memberAddresses = await editionDrop.history.getAllClaimerAddresses(0)
+        setMemberAddresses(memberAddresses);
+        console.log("🚀 Members addresses", memberAddresses)
+      } catch (error) {
+        console.error("Failed to get member list", error)
+      }
+    }
+    getAllAddresses()
+  }, [hasClaimedNFT, editionDrop.history])
+
+  // this useEffect grabs the # of token each member holds
+  useEffect(() => {
+    if (!hasClaimedNFT) {
+      return
+    }
+
+    const getAllBalances = async () => {
+      try {
+        const amounts = await token.history.getAllHolderBalances()
+        setMemberTokenAmounts(amounts)
+        console.log("👜 Amounts", amounts)
+      } catch (error) {
+        console.error("Failed to get member balances", error)
+      }
+    }
+    getAllBalances()
+  }, [hasClaimedNFT, token.history])
+
+  // combine the memberAddresses and memberTokenAmounts into a single array
+  const memberList = useMemo(() => {
+    return memberAddresses.map((address) => {
+      // We are checking if we are finding the address in the memberTokenAmounts array
+      // If we are, we'll return the amount of the token the user has
+      // Otherwise. return 0
+      const member = memberTokenAmounts?.find(({ holder }) => holder === address)
+
+      return {
+        address,
+        tokenAmount: member?.balance.displayValue || "0",
+      }
+    })
+  }, [memberAddresses, memberTokenAmounts])
 
   useEffect(() => {
     // if they don't have connected wallet yet, then exit
@@ -76,6 +141,29 @@ function App() {
       <div>
         <h1>🍪DAO Member Page</h1>
         <p>Congratulations on being a member</p>
+        <div>
+          <div>
+            <h2>Member List</h2>
+            <table className='card'>
+              <thead>
+                <tr>
+                  <th>Address</th>
+                  <th>Token Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {memberList.map((member) => {
+                  return (
+                    <tr key={member.address}>
+                      <td>{shortenAddress(member.address)}</td>
+                      <td>{member.tokenAmount}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     )
   }
